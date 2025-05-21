@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($email == '' || $password == '') {
         $errors[] = 'Please fill all the fields.';
     } else {
-        $check = $conn->prepare("SELECT id, name, password, role FROM users WHERE email = ?");
+        $check = $conn->prepare("SELECT id, email, name, password, role FROM users WHERE email = ?");
         $check->bind_param('s', $email);
         $check->execute();
         $result = $check->get_result();

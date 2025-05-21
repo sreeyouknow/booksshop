@@ -17,13 +17,54 @@ if (isset($_POST['submit'])) {
     $message = "Book request submitted successfully.";
 }
 
+$limit = 5;
+$page = isset($_GET['page']) ? max((int)$_GET['page'], 1) : 1;
+$start = ($page - 1) * $limit;
+
+$search = $_GET['search'] ?? '';
+$searchParam = "%{$search}%";
+
+$count_stmt = $conn->prepare("SELECT COUNT(*) AS total
+FROM book_requests WHERE title LIKE ?");
+$count_stmt->bind_param("s", $searchParam);
+$count_stmt->execute();
+$count_result = $count_stmt->get_result()->fetch_assoc();
+$total_books = $count_result['total'];
+$total_pages = ceil($total_books / $limit);
+
 // Fetch client requests
-$stmt = $conn->prepare("SELECT * FROM book_requests WHERE client_id = ? ORDER BY requested_at DESC");
-$stmt->bind_param("i", $client_id);
+$stmt = $conn->prepare("SELECT * FROM book_requests 
+    WHERE client_id = ? AND title LIKE ? 
+    ORDER BY requested_at DESC 
+    LIMIT ?, ?");
+$stmt->bind_param("issi", $client_id, $searchParam, $start, $limit);
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
+<style>
+.pagination a {
+    padding: 6px 12px;
+    margin: 2px;
+    border: 1px solid #ccc;
+    text-decoration: none;
+    color: #1a2942;
+}
+.pagination a.active {
+    font-weight: bold;
+    background-color: #c7a100;
+    color: #fff;
+}
+</style>
+
 <section>
+
+    <div class="search-box">
+        <form method="GET">
+            <input type="text" name="search" placeholder="Search request books..." value="<?= htmlspecialchars($search) ?>">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
 <h2>Request a Book</h2>
 
 <?php if (!empty($message)) echo "<p style='color:green;'>$message</p>"; ?>
@@ -56,5 +97,19 @@ $result = $stmt->get_result();
         </tr>
     <?php endwhile; ?>
 </table>
+    <div class="pagination">
+        <?php if ($page > 1): ?>
+            <a href="?search=<?= urlencode($search) ?>&page=<?= $page - 1 ?>">&laquo; Prev</a>
+        <?php endif; ?>
+
+        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+            <a href="?search=<?= urlencode($search) ?>&page=<?= $i ?>" class="<?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+        <?php endfor; ?>
+
+        <?php if ($page < $total_pages): ?>
+            <a href="?search=<?= urlencode($search) ?>&page=<?= $page + 1 ?>">Next &raquo;</a>
+        <?php endif; ?>
+    </div>
+
 </section>
 <?php include '../includes/footer.php'; ?>

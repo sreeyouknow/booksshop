@@ -3,6 +3,7 @@ include '../client/include/header.php';
 include '../client/include/sidebar.php';
 
 $client_id = $_SESSION['user_id'] ?? 0;
+$message = "";
 
 // --- Remove from Cart ---
 if (isset($_GET['remove']) && is_numeric($_GET['remove'])) {
@@ -39,17 +40,40 @@ if (isset($_POST['place_order']) && isset($_POST['cart_id']) && is_numeric($_POS
     }
 }
 
-// --- Get Cart Items ---
+// --- Pagination + Search ---
+$limit = 3;
+$page = isset($_GET['page']) ? max((int)$_GET['page'], 1) : 1;
+$start = ($page - 1) * $limit;
+
+$search = $_GET['search'] ?? '';
+$searchParam = "%{$search}%";
+
+// Count total for pagination
+$count_stmt = $conn->prepare("
+    SELECT COUNT(*) AS total 
+    FROM cart 
+    JOIN books ON cart.book_id = books.id
+    WHERE cart.client_id = ? AND books.title LIKE ?
+");
+$count_stmt->bind_param("is", $client_id, $searchParam);
+$count_stmt->execute();
+$count_result = $count_stmt->get_result()->fetch_assoc();
+$total_books = $count_result['total'];
+$total_pages = ceil($total_books / $limit);
+
+// --- Get Cart Items with Pagination and Search ---
 $stmt = $conn->prepare("
     SELECT cart.id, books.title, books.author, books.price, cart.quantity 
     FROM cart 
     JOIN books ON cart.book_id = books.id 
-    WHERE cart.client_id = ?
+    WHERE cart.client_id = ? AND books.title LIKE ?
+    LIMIT ? OFFSET ?
 ");
-$stmt->bind_param("i", $client_id);
+$stmt->bind_param("issi", $client_id, $searchParam, $limit, $start);
 $stmt->execute();
 $cart = $stmt->get_result();
 ?>
+
 <style>
 .card {
     border: 1px solid #ccc;
@@ -60,28 +84,45 @@ $cart = $stmt->get_result();
     display: inline-block;
     vertical-align: top;
 }
-.card img {
-    max-width: 100%;
-    height: auto;
+button{
+    width: 75%;
 }
-.card form {
-    margin-top: 10px;
-    width: 70%;
+button:hover {
+    background-color: #c7a100;
+    color: #1a2942;
 }
-
+.pagination a {
+    padding: 6px 12px;
+    margin: 2px;
+    border: 1px solid #ccc;
+    text-decoration: none;
+    color: #1a2942;
+}
+.pagination a.active {
+    font-weight: bold;
+    background-color: #c7a100;
+    color: #fff;
+}
 </style>
 
 <section>
-<h2>🛒 My Cart</h2>
-<?php if (!empty($message)) echo "<p style='color:green;'>$message</p>"; ?>
+    <div class="search-box">
+        <form method="GET">
+            <input type="text" name="search" placeholder="Search books..." value="<?= htmlspecialchars($search) ?>">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+    <div>
+    <h2>🛒 My Cart</h2>
+    <?php if (!empty($message)) echo "<p style='color:green;'>$message</p>"; ?>
 
-<?php if ($cart->num_rows > 0): ?>
-    <?php while ($row = $cart->fetch_assoc()): ?>
-    <div class="card">
+    <?php if ($cart->num_rows > 0): ?>
+        <?php while ($row = $cart->fetch_assoc()): ?>
+        <div class="card">
             <h3><?= htmlspecialchars($row['title']) ?></h3>
             <p><strong>Author:</strong> <?= htmlspecialchars($row['author']) ?></p>
             <p><strong>Price:</strong> ₹<?= $row['price'] ?></p>
-            
+
             <!-- Quantity Dropdown -->
             <label for="quantity_<?= $row['id'] ?>"><strong>Quantity:</strong></label>
             <select name="quantity" id="quantity_<?= $row['id'] ?>">
@@ -91,17 +132,35 @@ $cart = $stmt->get_result();
             </select>
 
             <!-- Remove from Cart -->
-            <a href="?remove=<?= $row['id'] ?>" onclick="return confirm('Remove this book from cart?')">🗑️ Remove</a>
-        <form method="POST">
+            <div>
+                <a href="?search=<?= urlencode($search) ?>&page=<?= $page ?>&remove=<?= $row['id'] ?>" onclick="return confirm('Remove this book from cart?')">🗑️ Remove</a>
+            </div>
+
             <!-- Place Single Book Order -->
-            <input type="hidden" name="cart_id" value="<?= $row['id'] ?>">
-            <button type="submit" name="place_order" onclick="return confirm('Place order for this book?')">✅ Place Order</button>
-        </form>
+            <form method="POST">
+                <input type="hidden" name="cart_id" value="<?= $row['id'] ?>">
+                <button type="submit" name="place_order" onclick="return confirm('Place order for this book?')" style="width:75%;">✅ Place Order</button>
+            </form>
+        </div>
+        <?php endwhile; ?>
+    <?php else: ?>
+        <p>Your cart is empty.</p>
+    <?php endif; ?>
+</div>
+    <!-- Pagination -->
+    <div class="pagination">
+        <?php if ($page > 1): ?>
+            <a href="?search=<?= urlencode($search) ?>&page=<?= $page - 1 ?>">&laquo; Prev</a>
+        <?php endif; ?>
+
+        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+            <a href="?search=<?= urlencode($search) ?>&page=<?= $i ?>" class="<?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+        <?php endfor; ?>
+
+        <?php if ($page < $total_pages): ?>
+            <a href="?search=<?= urlencode($search) ?>&page=<?= $page + 1 ?>">Next &raquo;</a>
+        <?php endif; ?>
     </div>
-    <?php endwhile; ?>
-<?php else: ?>
-    <p>Your cart is empty.</p>
-<?php endif; ?>
 </section>
 
 <?php include '../includes/footer.php'; ?>

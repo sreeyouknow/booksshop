@@ -26,7 +26,7 @@ if (isset($_POST['wishlist'])) {
 if (isset($_POST['cart'])) {
     $book_id = (int)$_POST['book_id'];
     $check = $conn->prepare("SELECT id, quantity FROM cart WHERE client_id = ? AND book_id = ?");
-    $check->bind_param("ii", $client_id, $client_id);
+    $check->bind_param("ii", $client_id, $book_id); 
     $check->execute();
     $result = $check->get_result();
     if ($result->num_rows > 0) {
@@ -42,8 +42,30 @@ if (isset($_POST['cart'])) {
     }
 }
 
-// --- Fetch Books
-$books = $conn->query("SELECT * FROM books");
+// --- Pagination Setup
+$limit = 3;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$start = ($page - 1) * $limit;
+
+// --- Search
+$search = $_GET['search'] ?? '';
+$searchParam = "%{$search}%";
+
+// --- Total Count for Pagination
+$count_stmt = $conn->prepare("SELECT COUNT(*) AS total FROM books 
+WHERE title LIKE ?");
+$count_stmt->bind_param("s", $searchParam);
+$count_stmt->execute();
+$count_result = $count_stmt->get_result()->fetch_assoc();
+$total_books = $count_result['total'];
+$total_pages = ceil($total_books / $limit);
+
+// --- Fetch Books with Limit + Search
+$stmt = $conn->prepare("SELECT * FROM books WHERE title LIKE ? 
+LIMIT ?, ?");
+$stmt->bind_param("sii", $searchParam, $start, $limit);
+$stmt->execute();
+$books = $stmt->get_result();
 
 // --- Fetch Wishlist
 $wishlist_result = $conn->prepare("
@@ -51,7 +73,7 @@ $wishlist_result = $conn->prepare("
     JOIN books b ON w.book_id = b.id
     WHERE w.client_id = ?
 ");
-$wishlist_result->bind_param("i", $user_id);
+$wishlist_result->bind_param("i", $client_id);
 $wishlist_result->execute();
 $wishlist = $wishlist_result->get_result();
 
@@ -61,12 +83,11 @@ $cart_result = $conn->prepare("
     JOIN books b ON c.book_id = b.id
     WHERE c.client_id = ?
 ");
-$cart_result->bind_param("i", $user_id);
+$cart_result->bind_param("i", $client_id);
 $cart_result->execute();
 $cart = $cart_result->get_result();
 ?>
 <style>
-    /* cart sytle */
 .card {
     border: 1px solid #ccc;
     border-radius: 8px;
@@ -83,13 +104,42 @@ $cart = $cart_result->get_result();
 .card form {
     margin-top: 10px;
 }
-.card button{
+.card button {
     width: 75%;
-    align-items:center;
+    align-items: center;
+}
+.search-box {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.pagination {
+    justify-content: center;
+    text-align: center;
+    margin-top: 20px;
+}
+.pagination a {
+    margin: 0 5px;
+    padding: 5px 10px;
+    border: 1px solid #333;
+    text-decoration: none;
+    color: #333;
+}
+.pagination a.active {
+    background-color: #333;
+    color: white;
 }
 </style>
+
 <section>
 <div class="container">
+
+    <div class="search-box">
+        <form method="GET">
+            <input type="text" name="search" placeholder="Search books..." value="<?= htmlspecialchars($search) ?>">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
     <h2>Available Books</h2>
     <?php while ($book = $books->fetch_assoc()): ?>
         <div class="card">
@@ -104,6 +154,21 @@ $cart = $cart_result->get_result();
             </form>
         </div>
     <?php endwhile; ?>
+
+    <div class="pagination">
+        <?php if ($page > 1): ?>
+            <a href="?search=<?= urlencode($search) ?>&page=<?= $page - 1 ?>">&laquo; Prev</a>
+        <?php endif; ?>
+
+        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+            <a href="?search=<?= urlencode($search) ?>&page=<?= $i ?>" class="<?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+        <?php endfor; ?>
+
+        <?php if ($page < $total_pages): ?>
+            <a href="?search=<?= urlencode($search) ?>&page=<?= $page + 1 ?>">Next &raquo;</a>
+        <?php endif; ?>
+    </div>
+
 </div>
 </section>
 <?php include '../includes/footer.php'; ?>

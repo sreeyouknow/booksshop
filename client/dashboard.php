@@ -86,7 +86,7 @@ section > div:not(:first-child) a {
         <a href= "book-request.php" style="color:#1a2942;">Request Book</a>
     </div>
     <div>
-        <a href="message.php" style="color:#1a2942;">Contact Agent</a>
+        <a href="messages.php" style="color:#1a2942;">Contact Agent</a>
     </div>
 </section>
 

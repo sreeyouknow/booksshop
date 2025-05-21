@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 16, 2025 at 08:02 AM
+-- Generation Time: May 21, 2025 at 12:36 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -84,16 +84,45 @@ CREATE TABLE `clients_assigned` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `error_logs`
+--
+
+CREATE TABLE `error_logs` (
+  `id` int(11) NOT NULL,
+  `error_type` varchar(50) DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
+  `file` varchar(255) DEFAULT NULL,
+  `line` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `logs`
+--
+
+CREATE TABLE `logs` (
+  `id` int(11) NOT NULL,
+  `admin_id` int(11) DEFAULT NULL,
+  `action` text DEFAULT NULL,
+  `log_time` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `messages`
 --
 
 CREATE TABLE `messages` (
   `id` int(11) NOT NULL,
-  `client_id` int(11) NOT NULL,
   `agent_id` int(11) NOT NULL,
+  `client_id` int(11) NOT NULL,
+  `sender` enum('client','agent') NOT NULL,
   `message` text NOT NULL,
-  `sent_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `reply` text DEFAULT NULL
+  `sent_at` datetime DEFAULT current_timestamp(),
+  `conversation_status` enum('open','ended') DEFAULT 'open'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -205,12 +234,22 @@ ALTER TABLE `clients_assigned`
   ADD KEY `client_id` (`client_id`);
 
 --
+-- Indexes for table `error_logs`
+--
+ALTER TABLE `error_logs`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `logs`
+--
+ALTER TABLE `logs`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `messages`
 --
 ALTER TABLE `messages`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `client_id` (`client_id`),
-  ADD KEY `agent_id` (`agent_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `purchases`
@@ -278,6 +317,18 @@ ALTER TABLE `clients_assigned`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `error_logs`
+--
+ALTER TABLE `error_logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `logs`
+--
+ALTER TABLE `logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
@@ -342,13 +393,6 @@ ALTER TABLE `cart`
 ALTER TABLE `clients_assigned`
   ADD CONSTRAINT `clients_assigned_ibfk_1` FOREIGN KEY (`agent_id`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `clients_assigned_ibfk_2` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`);
-
---
--- Constraints for table `messages`
---
-ALTER TABLE `messages`
-  ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`client_id`) REFERENCES `users` (`id`),
-  ADD CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`agent_id`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `purchases`

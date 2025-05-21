@@ -38,3 +38,4 @@ if (isset($_POST['update_profile'])) {
 </form>
 </section>
 <?php include '../includes/footer.php'; ?>
+ 

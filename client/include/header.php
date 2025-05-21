@@ -39,7 +39,7 @@ $row =$result->fetch_assoc();
                 <strong>🛒</strong>
                 <span id="count"><?php echo $row['total_book']; ?></span>
             </a>
-            <a href="message.php"><strong> 🖂 </strong> </a>
+            <a href="messages.php"><strong> 🖂 </strong> </a>
             
             <span><a href="../base/logout.php">| Logout</a></span>
         </div>

@@ -67,15 +67,39 @@ if (isset($_GET['cart']) && is_numeric($_GET['cart'])) {
     }
 }
 
-// --- Fetch Wishlist ---
+
+
+// --- Pagination + Search ---
+$limit = 3;
+$page = isset($_GET['page']) ? max((int)$_GET['page'], 1) : 1;
+$start = ($page - 1) * $limit;
+
+$search = $_GET['search'] ?? '';
+$searchParam = "%{$search}%";
+
+// --- Total Count for Pagination (Search-aware)
+$count_stmt = $conn->prepare("
+    SELECT COUNT(*) AS total 
+    FROM wishlist 
+    JOIN books ON wishlist.book_id = books.id 
+    WHERE wishlist.client_id = ? AND books.title LIKE ?
+");
+$count_stmt->bind_param("is", $client_id, $searchParam);
+$count_stmt->execute();
+$count_result = $count_stmt->get_result()->fetch_assoc();
+$total_books = $count_result['total'];
+$total_pages = ceil($total_books / $limit);
+
+// --- Fetch Wishlist
 $stmt = $conn->prepare("
     SELECT wishlist.id, books.title, books.author, books.price 
     FROM wishlist 
     JOIN books ON wishlist.book_id = books.id 
-    WHERE wishlist.client_id = ?
+    WHERE wishlist.client_id = ? AND books.title LIKE ?
     ORDER BY wishlist.added_at DESC
+    LIMIT ?, ?
 ");
-$stmt->bind_param("i", $client_id);
+$stmt->bind_param("isii", $client_id, $searchParam, $start, $limit);
 $stmt->execute();
 $wishlist = $stmt->get_result();
 ?>
@@ -109,22 +133,62 @@ button:hover {
     background-color: #c7a100;
     color: #1a2942;
 }
+.pagination a {
+    padding: 6px 12px;
+    margin: 2px;
+    border: 1px solid #ccc;
+    text-decoration: none;
+    color: #1a2942;
+}
+.pagination a.active {
+    font-weight: bold;
+    background-color: #c7a100;
+    color: #fff;
+}
 </style>
 
 <section>
-<h2>My Wishlist</h2>
-<?php if (!empty($message)) echo "<p style='color:green;'>$message</p>";?>
-    <?php while ($row = $wishlist->fetch_assoc()): ?>
-        <div class="card">
-            <h3><?= htmlspecialchars($row['title']) ?></h3>
-            <p>Author: <?= htmlspecialchars($row['author']) ?></p>
-            <p>Price: ₹<?= $row['price'] ?></p>
-            <a href="?remove=<?= $row['id'] ?>" onclick="return confirm('Remove this book from wishlist?')">Remove</a>
-            <a href="?cart=<?= $row['id'] ?>">
-                <button>Add to Cart</button>
-            </a>
-        </div>
-    <?php endwhile; ?>
+    <div class="search-box">
+        <form method="GET">
+            <input type="text" name="search" placeholder="Search books..." value="<?= htmlspecialchars($search) ?>">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+    <div class="wishlist">
+        <h2>My Wishlist</h2>
+        <?php if (!empty($message)) echo "<p style='color:green;'>$message</p>"; ?>
+
+        <?php if ($wishlist->num_rows > 0): ?>
+            <?php while ($row = $wishlist->fetch_assoc()): ?>
+                <div class="card">
+                    <h3><?= htmlspecialchars($row['title']) ?></h3>
+                    <p>Author: <?= htmlspecialchars($row['author']) ?></p>
+                    <p>Price: ₹<?= $row['price'] ?></p>
+                    <a href="?remove=<?= $row['id'] ?>" onclick="return confirm('Remove this book from wishlist?')">Remove</a>
+                    <a href="?cart=<?= $row['id'] ?>">
+                        <button>Add to Cart</button>
+                    </a>
+                </div>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <p>No books found in wishlist.</p>
+        <?php endif; ?>
+    </div>
+
+    <div class="pagination">
+    <?php if ($page > 1): ?>
+        <a href="?search=<?= urlencode($search) ?>&page=<?= $page - 1 ?>">&laquo; Prev</a>
+    <?php endif; ?>
+
+    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+        <a href="?search=<?= urlencode($search) ?>&page=<?= $i ?>" class="<?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+    <?php endfor; ?>
+
+    <?php if ($page < $total_pages): ?>
+        <a href="?search=<?= urlencode($search) ?>&page=<?= $page + 1 ?>">Next &raquo;</a>
+    <?php endif; ?>
+</div>
+
 </section>
 
 <?php include '../includes/footer.php'; ?>

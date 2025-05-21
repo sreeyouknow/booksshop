@@ -24,11 +24,15 @@
                 <span class="title">Client Management</span>
             </a>
         </li>
-        <li>
-            <a href="client-interaction.php">
-                <span class="icon">💬</span>
-                <span class="title">View Client Reviews</span>
+        <li class="has-submenu">
+            <a href="#" class="submenu-toggle">
+                <span class="icon">📝</span>
+                <span class="title">Client Activies ▾</span>
             </a>
+            <ul class="submenu">
+                <a href="client-messages.php">💬| Client Messages</a>
+                <a href="client-reviews.php">⭐| Client Reviews</a>
+            </ul>
         </li>
         <li class="has-submenu">
             <a href="#" class="submenu-toggle">

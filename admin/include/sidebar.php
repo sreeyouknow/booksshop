@@ -12,17 +12,6 @@
                 <span class="title">Dashboard</span>
             </a>
         </li>
-        <li>
-            <a href="user-management.php">
-                <span class="icon">👥</span>
-                <span class="title">User Management</span>
-            </a>
-        </li>
-        <li>
-            <a href="book-manage.php"> 
-                <span class="icon">📚</span>
-                <span class="title">Book Management</span>
-            </a>
         </li>
         <li>
             <a href="request-books.php">
@@ -30,11 +19,16 @@
                 <span class="title">Book Requests</span>
             </a>
         </li>
-        <li>
-            <a href="agent-manage.php">
-                <span class="icon">🕵️</span>
-                <span class="title">Agent Management</span>
+        <li class="has-submenu">
+            <a href="#" class="submenu-toggle">
+                <span class="icon">🛠️</span>
+                <span class="title">Managements ▾</span>
             </a>
+            <ul class="submenu">
+                <a href="agent-manage.php">🕵️| Agent Management</a>
+                <a href="user-management.php">👥| User Management</a>
+                <a href="book-manage.php">📚| Book Management</a>
+            </ul>
         </li>
         <li class="has-submenu">
             <a href="#" class="submenu-toggle">
@@ -44,8 +38,14 @@
             <ul class="submenu">
                 <a href="profile.php">👤| Update Profile</a>
                 <a href="change-password.php">🔒| Change Password</a>
-                <a href="update-smpt.php">📝| Change SMPT settings</a>
+                <a href="update-smpt.php">📝| SMPT settings</a>
             </ul>
+        </li>
+        <li>
+            <a href="errors.php">
+                <span class="icon">X</span>
+                <span class="title">Agent Management</span>
+            </a>
         </li>
         <li>
             <a href="../base/logout.php">

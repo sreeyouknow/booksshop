@@ -85,4 +85,5 @@ form button:hover {
     font-weight: 600;
     padding: 20px;
     text-align: center;
+    margin:0;
 }
