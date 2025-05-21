@@ -29,8 +29,8 @@ $c_user_id   = $_SESSION['id'] ?? null;
             <a href="dashboard.php"><h2>Books here</h2></a>
         </div>
         <div>
-            <a href="request-books.php"><strong> 📚 </strong></a>
-            <a href="client-interaction.php"><strong> 🖂 </strong> </a>
+            <a href="upload_book.php"><strong> 📚 </strong></a>
+            <a href="client-messages.php"><strong> 🖂 </strong> </a>
             <a href="profile.php"><strong> 👤 </strong></a>
             
             <span><a href="../base/logout.php">| Logout</a></span>
